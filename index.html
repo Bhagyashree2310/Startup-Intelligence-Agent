@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Startup Intelligence Agent</title>
+  <link rel="stylesheet" href="app.css">
+  <!-- React & Babel CDNs -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            darkbg: '#0B0F19',
+            cardbg: '#1E293B',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-[#0B0F19] text-gray-200">
+  <div id="root"></div>
+
+  <!-- React Application -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // Direct SVG Icon components for reliability and clean design
+    const Icons = {
+      Key: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-2 4a2 2 0 012 2m-8-3a5 5 0 0110 0v2a3 3 0 01-3 3H6a3 3 0 01-3-3v-2a5 5 0 015-5z" />
+        </svg>
+      ),
+      Upload: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+      ),
+      Sparkles: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-400 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      ),
+      Check: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-400 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      Alert: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-500 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      ),
+      Download: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+      ),
+      Printer: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+        </svg>
+      ),
+      Settings: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+      Bulb: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+      Company: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
+      Home: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      ),
+      History: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      Trash: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      )
+    };
+
+    function App() {
+      // Navigation & API Config state
+      const [activeTab, setActiveTab] = useState("dashboard"); // "dashboard" or "history"
+      const [appMode, setAppMode] = useState(null); // null, "idea", "funding"
+      const [showSettings, setShowSettings] = useState(false);
+      const [apiKeyInput, setApiKeyInput] = useState("");
+      const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
+      const [apiKeyHeader, setApiKeyHeader] = useState("");
+
+      // History log database state
+      const [historyList, setHistoryList] = useState([]);
+      const [searchQuery, setSearchQuery] = useState("");
+      const [filterType, setFilterType] = useState("all");
+      const [comparisonSelection, setComparisonSelection] = useState([]); // Array of 2 record IDs to compare
+      const [comparisonData, setComparisonData] = useState(null); // stores details of the two compared records
+
+      // Form Intake State - Funding Mode
+      const [activeFormTab, setActiveFormTab] = useState("profile");
+      const [fundingForm, setFundingForm] = useState({
+        name: "",
+        industry: "",
+        problem: "",
+        solution: "",
+        business_model: "",
+        target_market: "",
+        team: "",
+        product_stage: "MVP",
+        monthly_revenue: "",
+        customer_count: "",
+        growth_rate: "",
+        funding_stage: "Pre-Seed",
+        competitors: ""
+      });
+
+      // Form Intake State - Idea Mode
+      const [ideaForm, setIdeaForm] = useState({
+        name: "",
+        industry: "",
+        idea: "",
+        problem: "",
+        target_customer: "",
+        revenue_model: ""
+      });
+      const [ideaConfidences, setIdeaConfidences] = useState({});
+
+      // PDF Upload states
+      const [uploadingPdf, setUploadingPdf] = useState(false);
+      const [pdfFeedback, setPdfFeedback] = useState("");
+
+      // Evaluation results state
+      const [evaluating, setEvaluating] = useState(false);
+      const [evalStepMsg, setEvalStepMsg] = useState("");
+      const [report, setReport] = useState(null);
+      const [activeReportTab, setActiveReportTab] = useState("swot");
+      const [activeQuestion, setActiveQuestion] = useState(null);
+
+      const chartRef = useRef(null);
+      const chartInstance = useRef(null);
+
+      const trendChartRef = useRef(null);
+      const trendChartInstance = useRef(null);
+
+      // Loading messages
+      const loadingPhrases = [
+        "Analyzing target segment pain points...",
+        "Evaluating TAM and scalability boundaries...",
+        "Determining competitive barrier scores...",
+        "Validating business model structure & pricing viability...",
+        "Evaluating execution risk and complexity indices...",
+        "Formulating 90-day action timeline and SWOT matrix...",
+        "Generating strategic validation questions..."
+      ];
+
+      // Check config and load history list on mount
+      useEffect(() => {
+        fetch("/api/config")
+          .then(res => res.json())
+          .then(data => {
+            setApiKeyConfigured(data.configured);
+            if (!data.configured) {
+              const savedKey = localStorage.getItem("groq_api_key");
+              if (savedKey) {
+                updateKey(savedKey);
+              } else {
+                setShowSettings(true);
+              }
+            }
+          })
+          .catch(err => console.error("Error loading config:", err));
+
+        fetchHistoryList();
+      }, []);
+
+      const fetchHistoryList = () => {
+        fetch("/api/history")
+          .then(res => res.json())
+          .then(data => {
+            // Sort history by date descending initially
+            const sorted = data.sort((a, b) => new Date(b.date) - new Date(a.date));
+            setHistoryList(sorted);
+          })
+          .catch(err => console.error("Error fetching history:", err));
+      };
+
+      const updateKey = (key) => {
+        setApiKeyInput(key);
+        setApiKeyHeader(key);
+        fetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groq_api_key: key })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === "success") {
+            setApiKeyConfigured(true);
+            localStorage.setItem("groq_api_key", key);
+          }
+        })
+        .catch(err => console.error("Error updating key:", err));
+      };
+
+      // Loading animation timer
+      useEffect(() => {
+        let timer;
+        if (evaluating) {
+          let idx = 0;
+          setEvalStepMsg(loadingPhrases[0]);
+          timer = setInterval(() => {
+            idx = (idx + 1) % loadingPhrases.length;
+            setEvalStepMsg(loadingPhrases[idx]);
+          }, 3000);
+        }
+        return () => clearInterval(timer);
+      }, [evaluating]);
+
+      // Category label mapping based on appMode
+      const getCategoryMapping = () => {
+        if (appMode === "idea") {
+          return {
+            "problem_solution_fit": "Problem-Solution Fit",
+            "market_opportunity": "Market Opportunity",
+            "team_strength": "Execution Complexity",
+            "product_maturity": "Business Model Viability",
+            "traction": "Competitor Density",
+            "revenue_potential": "Revenue Potential",
+            "scalability": "Growth Potential",
+            "competitive_advantage": "Defensibility"
+          };
+        } else {
+          return {
+            "problem_solution_fit": "Problem-Solution Fit",
+            "market_opportunity": "Market Opportunity",
+            "team_strength": "Team Strength",
+            "product_maturity": "Product Maturity",
+            "traction": "Traction",
+            "revenue_potential": "Revenue Potential",
+            "scalability": "Scalability",
+            "competitive_advantage": "Competitive Defensibility"
+          };
+        }
+      };
+
+      const renderConfidenceBadge = (field) => {
+        const conf = ideaConfidences[field];
+        if (!conf) return null;
+        
+        let bgClass = "";
+        let textClass = "";
+        let borderClass = "";
+        let dotClass = "";
+        let labelText = conf;
+        
+        if (conf === "High") {
+          bgClass = "bg-emerald-500/10";
+          textClass = "text-emerald-400";
+          borderClass = "border-emerald-500/20";
+          dotClass = "bg-emerald-400";
+        } else if (conf === "Medium") {
+          bgClass = "bg-sky-500/10";
+          textClass = "text-sky-400";
+          borderClass = "border-sky-500/20";
+          dotClass = "bg-sky-400";
+        } else {
+          bgClass = "bg-amber-500/10";
+          textClass = "text-amber-400";
+          borderClass = "border-amber-500/20";
+          dotClass = "bg-amber-500";
+          labelText = "Low (AI Suggested)";
+        }
+        
+        return (
+          <span class={`inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${bgClass} ${textClass} ${borderClass}`}>
+            <span class={`w-1.5 h-1.5 rounded-full ${dotClass}`}></span>
+            {labelText}
+          </span>
+        );
+      };
+
+      // Active Dashboard Chart Effect
+      useEffect(() => {
+        if (report && chartRef.current && activeTab === "dashboard") {
+          if (chartInstance.current) {
+            chartInstance.current.destroy();
+          }
+
+          const ctx = chartRef.current.getContext('2d');
+          const mapping = getCategoryMapping();
+          
+          const labels = Object.values(mapping);
+          const scores = [
+            report.category_scores.problem_solution_fit || 0,
+            report.category_scores.market_opportunity || 0,
+            report.category_scores.team_strength || 0,
+            report.category_scores.product_maturity || 0,
+            report.category_scores.traction || 0,
+            report.category_scores.revenue_potential || 0,
+            report.category_scores.scalability || 0,
+            report.category_scores.competitive_advantage || 0
+          ];
+
+          chartInstance.current = new Chart(ctx, {
+            type: 'radar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Score Breakdown',
+                data: scores,
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                borderColor: 'rgba(99, 102, 241, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(34, 211, 238, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(99, 102, 241, 1)'
+              }, {
+                label: appMode === "idea" ? 'Ideal Validation Baseline' : 'Typical VC Benchmark',
+                data: [75, 75, 70, 75, 70, 75, 75, 75],
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                borderColor: 'rgba(255, 255, 255, 0.25)',
+                borderWidth: 1.5,
+                borderDash: [5, 5],
+                pointRadius: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                r: {
+                  angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                  grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                  pointLabels: {
+                    color: '#9CA3AF',
+                    font: { size: 9, family: 'Inter' }
+                  },
+                  ticks: {
+                    color: '#6B7280',
+                    backdropColor: 'transparent',
+                    showLabelBackdrop: false
+                  },
+                  suggestedMin: 0,
+                  suggestedMax: 100
+                }
+              },
+              plugins: {
+                legend: {
+                  labels: {
+                    color: '#D1D5DB',
+                    font: { family: 'Inter', size: 11 }
+                  }
+                }
+              }
+            }
+          });
+        }
+      }, [report, appMode, activeTab]);
+
+      // History Trend Line Chart Effect
+      useEffect(() => {
+        if (activeTab === "history" && trendChartRef.current && historyList.length > 0) {
+          if (trendChartInstance.current) {
+            trendChartInstance.current.destroy();
+          }
+
+          // Filter records according to active filters
+          const filtered = historyList.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesType = filterType === "all" || 
+                                (filterType === "idea" && item.type === "Idea Validation") || 
+                                (filterType === "funding" && item.type === "Funding Readiness");
+            return matchesSearch && matchesType;
+          });
+
+          // Sort chronological (oldest first) for correct trend direction
+          const cronList = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
+          const labels = cronList.map(item => new Date(item.date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}));
+          const dataPoints = cronList.map(item => item.overall_score);
+
+          const ctx = trendChartRef.current.getContext('2d');
+          trendChartInstance.current = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: searchQuery ? `Overall Score Trend (${searchQuery})` : 'Overall Score Trend (All Startups)',
+                data: dataPoints,
+                borderColor: '#818CF8',
+                backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#22D3EE',
+                pointBorderColor: '#fff',
+                pointRadius: 5,
+                pointHoverRadius: 7
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                x: {
+                  grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                  ticks: { color: '#9CA3AF', font: { family: 'Inter', size: 10 } }
+                },
+                y: {
+                  grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                  ticks: { color: '#9CA3AF', font: { family: 'Inter', size: 10 } },
+                  suggestedMin: 0,
+                  suggestedMax: 100
+                }
+              },
+              plugins: {
+                legend: {
+                  labels: {
+                    color: '#D1D5DB',
+                    font: { family: 'Inter', size: 11 }
+                  }
+                }
+              }
+            }
+          });
+        }
+      }, [historyList, activeTab, searchQuery, filterType]);
+
+      // PDF Upload handler
+      const handlePdfUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploadingPdf(true);
+        setPdfFeedback("Parsing text and extracting startup parameters...");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/api/extract-deck", {
+          method: "POST",
+          headers: apiKeyHeader ? { "X-Groq-API-Key": apiKeyHeader } : {},
+          body: formData
+        })
+        .then(async (res) => {
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.detail || "Failed to extract pitch deck");
+          }
+          return res.json();
+        })
+        .then(data => {
+          setFundingForm(prev => ({
+            ...prev,
+            name: data.name || prev.name,
+            industry: data.industry || prev.industry,
+            problem: data.problem || prev.problem,
+            solution: data.solution || prev.solution,
+            business_model: data.business_model || prev.business_model,
+            target_market: data.target_market || prev.target_market,
+            team: data.team || prev.team,
+            product_stage: data.product_stage || prev.product_stage,
+            monthly_revenue: data.monthly_revenue || prev.monthly_revenue,
+            customer_count: data.customer_count || prev.customer_count,
+            growth_rate: data.growth_rate || prev.growth_rate,
+            funding_stage: data.funding_stage || prev.funding_stage,
+            competitors: data.competitors || prev.competitors,
+          }));
+          setPdfFeedback("Success! Parameters extracted and loaded into form.");
+          setTimeout(() => setPdfFeedback(""), 4000);
+        })
+        .catch(err => {
+          console.error("PDF upload error:", err);
+          setPdfFeedback(`Error: ${err.message}`);
+        })
+        .finally(() => {
+          setUploadingPdf(false);
+        });
+      };
+
+      const handleFundingInputChange = (field, value) => {
+        setFundingForm(prev => ({ ...prev, [field]: value }));
+      };
+
+      const handleIdeaPdfUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploadingPdf(true);
+        setPdfFeedback("Extracting Idea Information...");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/api/extract-idea", {
+          method: "POST",
+          headers: apiKeyHeader ? { "X-Groq-API-Key": apiKeyHeader } : {},
+          body: formData
+        })
+        .then(async (res) => {
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.detail || "Failed to extract idea PDF");
+          }
+          return res.json();
+        })
+        .then(data => {
+          setIdeaForm({
+            name: data.name || "",
+            industry: data.industry || "",
+            idea: data.idea || "",
+            problem: data.problem || "",
+            target_customer: data.target_customer || "",
+            revenue_model: data.revenue_model || ""
+          });
+          setIdeaConfidences(data.confidences || {});
+          setPdfFeedback("Success! Parameters extracted and loaded.");
+          setTimeout(() => setPdfFeedback(""), 4000);
+        })
+        .catch(err => {
+          console.error("PDF upload error:", err);
+          setPdfFeedback(`Error: ${err.message}`);
+        })
+        .finally(() => {
+          setUploadingPdf(false);
+        });
+      };
+
+      const handleIdeaInputChange = (field, value) => {
+        setIdeaForm(prev => ({ ...prev, [field]: value }));
+        setIdeaConfidences(prev => {
+          const updated = { ...prev };
+          delete updated[field];
+          return updated;
+        });
+      };
+
+      // Submit evaluations
+      const handleEvaluate = (e) => {
+        e.preventDefault();
+        setEvaluating(true);
+        setReport(null);
+
+        const endpoint = appMode === "idea" ? "/api/validate-idea" : "/api/evaluate";
+        const payload = appMode === "idea" ? ideaForm : fundingForm;
+
+        fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(apiKeyHeader ? { "X-Groq-API-Key": apiKeyHeader } : {})
+          },
+          body: JSON.stringify(payload)
+        })
+        .then(async (res) => {
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.detail || "Evaluation failed");
+          }
+          return res.json();
+        })
+        .then(data => {
+          setReport(data);
+          setActiveReportTab("swot");
+          fetchHistoryList(); // Refresh saved logs list
+        })
+        .catch(err => {
+          alert(`Evaluation failed: ${err.message}`);
+        })
+        .finally(() => {
+          setEvaluating(false);
+        });
+      };
+
+      // Load past assessment details
+      const viewPastAssessment = (recordId) => {
+        fetch(`/api/history/${recordId}`)
+          .then(res => res.json())
+          .then(data => {
+            setReport(data.report);
+            setAppMode(data.type === "Idea Validation" ? "idea" : "funding");
+            if (data.type === "Idea Validation") {
+              setIdeaForm(data.profile);
+              setIdeaConfidences({});
+            } else {
+              setFundingForm(data.profile);
+            }
+            setActiveTab("dashboard");
+            setActiveReportTab("swot");
+          })
+          .catch(err => alert("Failed to fetch assessment details: " + err.message));
+      };
+
+      // Delete past assessment
+      const deletePastAssessment = (recordId, e) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to delete this assessment record from your history?")) return;
+
+        fetch(`/api/history/${recordId}`, { method: "DELETE" })
+          .then(res => res.json())
+          .then(data => {
+            fetchHistoryList();
+            // Clear comparison selections if containing deleted ID
+            setComparisonSelection(prev => prev.filter(id => id !== recordId));
+            if (comparisonData && (comparisonData.record1.id === recordId || comparisonData.record2.id === recordId)) {
+              setComparisonData(null);
+            }
+          })
+          .catch(err => alert("Failed to delete record: " + err.message));
+      };
+
+      // Comparison Selection Toggle
+      const toggleComparisonSelection = (recordId) => {
+        setComparisonSelection(prev => {
+          if (prev.includes(recordId)) {
+            const next = prev.filter(id => id !== recordId);
+            if (next.length < 2) setComparisonData(null);
+            return next;
+          }
+          if (prev.length >= 2) {
+            alert("You can select a maximum of 2 assessments to compare at a time.");
+            return prev;
+          }
+          const next = [...prev, recordId];
+          if (next.length === 2) {
+            fetchComparisonDetails(next[0], next[1]);
+          }
+          return next;
+        });
+      };
+
+      // Fetch comparison items and load diff data
+      const fetchComparisonDetails = (id1, id2) => {
+        Promise.all([
+          fetch(`/api/history/${id1}`).then(res => res.json()),
+          fetch(`/api/history/${id2}`).then(res => res.json())
+        ])
+        .then(([rec1, rec2]) => {
+          // Order chronological (rec1 is older, rec2 is newer)
+          const ordered = new Date(rec1.date) < new Date(rec2.date) 
+            ? { record1: rec1, record2: rec2 } 
+            : { record1: rec2, record2: rec1 };
+          
+          setComparisonData(ordered);
+        })
+        .catch(err => alert("Failed to load comparison data: " + err.message));
+      };
+
+      // Generate diff summary highlights
+      const generateComparisonInsights = () => {
+        if (!comparisonData) return null;
+        const { record1, record2 } = comparisonData;
+        const diffOverall = record2.overall_score - record1.overall_score;
+
+        const categories = {
+          "problem_solution_fit": "Problem-Solution Fit",
+          "market_opportunity": "Market Opportunity",
+          "team_strength": record2.type === "Idea Validation" ? "Execution Complexity" : "Team Strength",
+          "product_maturity": record2.type === "Idea Validation" ? "Business Model Viability" : "Product Maturity",
+          "traction": record2.type === "Idea Validation" ? "Competitor Density" : "Traction",
+          "revenue_potential": "Revenue Potential",
+          "scalability": record2.type === "Idea Validation" ? "Growth Potential" : "Scalability",
+          "competitive_advantage": record2.type === "Idea Validation" ? "Defensibility" : "Competitive Defensibility"
+        };
+
+        let improvements = [];
+        let declines = [];
+
+        Object.entries(categories).map(([key, label]) => {
+          const score1 = record1.category_scores[key] || 0;
+          const score2 = record2.category_scores[key] || 0;
+          const d = score2 - score1;
+          if (d > 0) improvements.push(`${label} (+${d})`);
+          if (d < 0) declines.push(`${label} (${d})`);
+        });
+
+        return {
+          diffOverall,
+          improvements,
+          declines
+        };
+      };
+
+      const downloadMarkdown = () => {
+        if (!report) return;
+
+        const payload = appMode === "idea" 
+          ? { ...ideaForm, ...report, mode: "idea" }
+          : { ...fundingForm, ...report, mode: "funding" };
+
+        fetch("/api/export-report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+          const element = document.createElement("a");
+          const file = new Blob([data.content], { type: 'text/markdown' });
+          element.href = URL.createObjectURL(file);
+          element.download = data.filename;
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+        })
+        .catch(err => alert("Failed to export report: " + err.message));
+      };
+
+      const resetMode = () => {
+        setAppMode(null);
+        setReport(null);
+        setActiveQuestion(null);
+        setFundingForm({
+          name: "",
+          industry: "",
+          problem: "",
+          solution: "",
+          business_model: "",
+          target_market: "",
+          team: "",
+          product_stage: "MVP",
+          monthly_revenue: "",
+          customer_count: "",
+          growth_rate: "",
+          funding_stage: "Pre-Seed",
+          competitors: ""
+        });
+        setIdeaForm({
+          name: "",
+          industry: "",
+          idea: "",
+          problem: "",
+          target_customer: "",
+          revenue_model: ""
+        });
+        setIdeaConfidences({});
+      };
+
+      return (
+        <div class="min-h-screen pb-16">
+          {/* Header Navigation */}
+          <header class="border-b border-gray-800 bg-[#0F172A] py-5 px-6 sticky top-0 z-40 no-print backdrop-blur-md bg-opacity-90">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+              <div class="flex items-center gap-3">
+                <button 
+                  onClick={resetMode}
+                  class="bg-gradient-to-tr from-indigo-500 to-purple-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 hover:scale-105 transition"
+                >
+                  <span class="font-display font-extrabold text-white text-lg">SI</span>
+                </button>
+                <div>
+                  <h1 class="font-display font-bold text-xl tracking-tight text-white flex items-center">
+                    Startup Intelligence Agent
+                  </h1>
+                  <p class="text-xs text-gray-400">Automated Idea Validation & Investor Assessment Engine</p>
+                </div>
+              </div>
+
+              {/* Central Tab Toggle */}
+              <div class="flex bg-gray-800/60 p-1 rounded-xl border border-gray-700/50">
+                <button
+                  onClick={() => setActiveTab("dashboard")}
+                  class={`px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wider transition ${
+                    activeTab === "dashboard" ? "bg-indigo-600 text-white shadow" : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setActiveTab("history")}
+                  class={`px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wider transition ${
+                    activeTab === "history" ? "bg-indigo-600 text-white shadow" : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  Assessment History
+                </button>
+              </div>
+
+              <div class="flex items-center gap-3">
+                {appMode && activeTab === "dashboard" && (
+                  <button 
+                    onClick={resetMode}
+                    class="bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center transition"
+                  >
+                    <Icons.Home /> Reset Mode
+                  </button>
+                )}
+
+                {apiKeyConfigured ? (
+                  <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Groq Connected
+                  </span>
+                ) : (
+                  <span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>
+                    Key Missing
+                  </span>
+                )}
+
+                <button 
+                  onClick={() => setShowSettings(!showSettings)} 
+                  class="bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 p-2 rounded-lg transition"
+                  title="Configure API Key"
+                >
+                  <Icons.Settings />
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <main class="max-w-7xl mx-auto px-4 md:px-6 mt-3">
+            
+            {/* Dynamic settings drawer */}
+            {showSettings && (
+              <div class="glass-panel p-6 rounded-2xl border-indigo-500/30 flex flex-col md:flex-row md:items-center justify-between gap-6 no-print mb-8">
+                <div class="max-w-xl">
+                  <h3 class="font-display font-bold text-lg text-white flex items-center gap-2">
+                    <Icons.Key /> Groq API Configuration
+                  </h3>
+                  <p class="text-sm text-gray-300 mt-1 font-sans">
+                    This platform uses <strong>Llama 3.3 70B</strong> via the Groq API. 
+                    Input your API Key below. It is stored temporarily in your local browser session and loaded in request headers.
+                  </p>
+                </div>
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                  <input
+                    type="password"
+                    placeholder="gsk_..."
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    class="bg-[#0B0F19] text-gray-200 px-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm w-full md:w-80"
+                  />
+                  <button
+                    onClick={() => {
+                      updateKey(apiKeyInput);
+                      setShowSettings(false);
+                    }}
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm px-4 py-2 rounded-lg transition shadow-lg shadow-indigo-600/20"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB VIEW: DASHBOARD (Active evaluation / intake workspace) */}
+            {activeTab === "dashboard" && (
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                {/* Mode Selection Landing Screen */}
+                {appMode === null && (
+                  <div class="col-span-12 flex flex-col items-center justify-center pt-3 pb-12 md:pt-6 md:pb-20 text-center no-print">
+                    <h2 class="font-display font-extrabold text-3xl md:text-5xl text-white tracking-tight leading-tight max-w-2xl">
+                      Evaluate and Refine Your Business Parameters
+                    </h2>
+                    <p class="text-gray-400 text-sm md:text-base mt-4 max-w-lg leading-relaxed font-sans">
+                      Select your startup stage below to initialize the custom AI evaluation system.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12 w-full max-w-3xl">
+                      {/* Idea Stage Box */}
+                      <div 
+                        onClick={() => setAppMode("idea")}
+                        class="selector-card p-8 rounded-2xl text-left flex flex-col items-start gap-4"
+                      >
+                        <div class="bg-amber-500/10 p-3.5 rounded-2xl flex items-center justify-center">
+                          <Icons.Bulb />
+                        </div>
+                        <div>
+                          <h3 class="font-display font-extrabold text-xl text-white">Idea Stage</h3>
+                          <p class="text-xs text-gray-400 mt-2 leading-relaxed font-sans">
+                            I have a raw business concept. I want to validate the target segment, verify business models, identify critical risks, and draft a roadmap.
+                          </p>
+                        </div>
+                        <span class="text-indigo-400 font-bold text-xs mt-4 flex items-center gap-1">
+                          Validate Idea &rarr;
+                        </span>
+                      </div>
+
+                      {/* Funding Stage Box */}
+                      <div 
+                        onClick={() => setAppMode("funding")}
+                        class="selector-card p-8 rounded-2xl text-left flex flex-col items-start gap-4"
+                      >
+                        <div class="bg-indigo-500/10 p-3.5 rounded-2xl flex items-center justify-center">
+                          <Icons.Company />
+                        </div>
+                        <div>
+                          <h3 class="font-display font-extrabold text-xl text-white">Existing Startup</h3>
+                          <p class="text-xs text-gray-400 mt-2 leading-relaxed font-sans">
+                            I have an MVP, product version, or revenue traction. I want to perform a VC-style assessment to check readiness for fundraising.
+                          </p>
+                        </div>
+                        <span class="text-indigo-400 font-bold text-xs mt-4 flex items-center gap-1">
+                          Assess Funding Readiness &rarr;
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Left Column: Form Intake (45%) */}
+                {appMode && (
+                  <section class="lg:col-span-5 flex flex-col gap-6 no-print">
+                    <div class="glass-panel p-6 rounded-2xl border-gray-800">
+                      <div class="flex justify-between items-center mb-2">
+                        <h2 class="font-display font-extrabold text-xl text-white">
+                          {appMode === "idea" ? "Startup Idea Intake" : "Startup Information Intake"}
+                        </h2>
+                        <span class={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${
+                          appMode === "idea" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                        }`}>
+                          {appMode === "idea" ? "Idea Mode" : "Fundraising Mode"}
+                        </span>
+                      </div>
+                      <p class="text-xs text-gray-400 mb-6">
+                        {appMode === "idea" 
+                          ? "Fill in your raw concepts to build a validation assessment." 
+                          : "Upload a pitch deck PDF to auto-fill or enter details manually."}
+                      </p>
+
+                      {/* Optional Pitch Deck Upload (Only for Funding Mode) */}
+                      {appMode === "funding" && (
+                        <div class="border-2 border-dashed border-gray-700 hover:border-indigo-500/50 rounded-xl p-5 text-center transition bg-[#0F172A]/40 mb-6 relative">
+                          <input
+                            type="file"
+                            accept=".pdf"
+                            onChange={handlePdfUpload}
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            disabled={uploadingPdf}
+                          />
+                          <div class="flex flex-col items-center gap-2">
+                            <Icons.Upload />
+                            <p class="text-xs font-semibold text-gray-300">Upload Pitch Deck PDF (Optional)</p>
+                            <p class="text-[10px] text-gray-500">Auto-populates inputs using Llama 3.3 70B text parsing</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {pdfFeedback && (
+                        <div class={`text-xs p-3 rounded-lg mb-6 ${pdfFeedback.startsWith("Error") ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"}`}>
+                          {uploadingPdf && <span class="animate-spin inline-block mr-2 w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full"></span>}
+                          {pdfFeedback}
+                        </div>
+                      )}
+
+                      {/* FORM RENDER: IDEA MODE */}
+                      {appMode === "idea" ? (
+                        <form onSubmit={handleEvaluate} class="space-y-4">
+                          {/* Optional PDF Upload for Idea Mode */}
+                          <div class="border-2 border-dashed border-gray-700 hover:border-indigo-500/50 rounded-xl p-5 text-center transition bg-[#0F172A]/40 mb-6 relative">
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              onChange={handleIdeaPdfUpload}
+                              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              disabled={uploadingPdf}
+                            />
+                            <div class="flex flex-col items-center gap-2">
+                              <Icons.Upload />
+                              <p class="text-xs font-semibold text-gray-300">Upload Idea Document PDF (Optional)</p>
+                              <p class="text-[10px] text-gray-500">Auto-extracts idea parameters using Llama 3.3 70B</p>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1.5 flex justify-between items-center">
+                              <span>Project / Idea Name *</span>
+                              {renderConfidenceBadge("name")}
+                            </label>
+                            <input
+                              required
+                              type="text"
+                              value={ideaForm.name}
+                              onChange={(e) => handleIdeaInputChange("name", e.target.value)}
+                              placeholder="e.g. EcoBox"
+                              class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1.5 flex justify-between items-center">
+                              <span>Industry Sector *</span>
+                              {renderConfidenceBadge("industry")}
+                            </label>
+                            <input
+                              required
+                              type="text"
+                              value={ideaForm.industry}
+                              onChange={(e) => handleIdeaInputChange("industry", e.target.value)}
+                              placeholder="e.g. GreenTech, Packaging"
+                              class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1.5 flex justify-between items-center">
+                              <span>Startup Idea (Value Proposition) *</span>
+                              {renderConfidenceBadge("idea")}
+                            </label>
+                            <textarea
+                              required
+                              rows="3"
+                              value={ideaForm.idea}
+                              onChange={(e) => handleIdeaInputChange("idea", e.target.value)}
+                              placeholder="Describe what your product/service does and how it creates value."
+                              class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm resize-none"
+                            ></textarea>
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1.5 flex justify-between items-center">
+                              <span>Problem Being Solved *</span>
+                              {renderConfidenceBadge("problem")}
+                            </label>
+                            <textarea
+                              required
+                              rows="3"
+                              value={ideaForm.problem}
+                              onChange={(e) => handleIdeaInputChange("problem", e.target.value)}
+                              placeholder="What specific pain point does your target segment face?"
+                              class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm resize-none"
+                            ></textarea>
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1.5 flex justify-between items-center">
+                              <span>Target Customer Segment *</span>
+                              {renderConfidenceBadge("target_customer")}
+                            </label>
+                            <input
+                              required
+                              type="text"
+                              value={ideaForm.target_customer}
+                              onChange={(e) => handleIdeaInputChange("target_customer", e.target.value)}
+                              placeholder="e.g. D2C e-commerce brands sending over 5k orders/month"
+                              class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-gray-400 mb-1.5 flex justify-between items-center">
+                              <span>Expected Revenue Model *</span>
+                              {renderConfidenceBadge("revenue_model")}
+                            </label>
+                            <input
+                              required
+                              type="text"
+                              value={ideaForm.revenue_model}
+                              onChange={(e) => handleIdeaInputChange("revenue_model", e.target.value)}
+                              placeholder="e.g. Transaction-fee based + premium monthly SaaS subscription"
+                              class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={evaluating || !apiKeyConfigured}
+                            class={`w-full py-2.5 rounded-lg text-sm font-semibold transition mt-4 flex items-center justify-center gap-2 ${
+                              !apiKeyConfigured 
+                                ? "bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed" 
+                                : "bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white shadow-lg shadow-indigo-600/30"
+                            }`}
+                          >
+                            {evaluating ? (
+                              <>
+                                <span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                                Validating Idea...
+                              </>
+                            ) : (
+                              <>
+                                <Icons.Sparkles />
+                                Validate Idea Viability
+                              </>
+                            )}
+                          </button>
+                        </form>
+                      ) : (
+                        /* FORM RENDER: FUNDING READY MODE */
+                        <form onSubmit={handleEvaluate} class="space-y-4">
+                          {/* Form Navigation Tabs */}
+                          <div class="flex border-b border-gray-800 mb-6 text-xs font-semibold">
+                            <button
+                              type="button"
+                              onClick={() => setActiveFormTab("profile")}
+                              class={`flex-1 pb-3 text-center border-b-2 transition ${activeFormTab === "profile" ? "border-indigo-500 text-indigo-400" : "border-transparent text-gray-400 hover:text-gray-200"}`}
+                            >
+                              1. Profile
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFormTab("core")}
+                              class={`flex-1 pb-3 text-center border-b-2 transition ${activeFormTab === "core" ? "border-indigo-500 text-indigo-400" : "border-transparent text-gray-400 hover:text-gray-200"}`}
+                            >
+                              2. Proposal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveFormTab("traction")}
+                              class={`flex-1 pb-3 text-center border-b-2 transition ${activeFormTab === "traction" ? "border-indigo-500 text-indigo-400" : "border-transparent text-gray-400 hover:text-gray-200"}`}
+                            >
+                              3. Traction
+                            </button>
+                          </div>
+
+                          {activeFormTab === "profile" && (
+                            <div class="space-y-4">
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Startup Name *</label>
+                                <input
+                                  required
+                                  type="text"
+                                  value={fundingForm.name}
+                                  onChange={(e) => handleFundingInputChange("name", e.target.value)}
+                                  placeholder="e.g. Acme FinTech"
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Industry Sector *</label>
+                                <input
+                                  required
+                                  type="text"
+                                  value={fundingForm.industry}
+                                  onChange={(e) => handleFundingInputChange("industry", e.target.value)}
+                                  placeholder="e.g. B2B SaaS, Logistics"
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                />
+                              </div>
+                              <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Product Stage *</label>
+                                  <select
+                                    value={fundingForm.product_stage}
+                                    onChange={(e) => handleFundingInputChange("product_stage", e.target.value)}
+                                    class="w-full bg-[#0B0F19] text-gray-200 px-3 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                  >
+                                    <option value="Idea">Idea Stage</option>
+                                    <option value="Prototype">Prototype/Wireframes</option>
+                                    <option value="MVP">MVP/Closed Beta</option>
+                                    <option value="Launch">Launched Product</option>
+                                    <option value="Scaling">Scaling Growth</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Funding Target *</label>
+                                  <select
+                                    value={fundingForm.funding_stage}
+                                    onChange={(e) => handleFundingInputChange("funding_stage", e.target.value)}
+                                    class="w-full bg-[#0B0F19] text-gray-200 px-3 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                  >
+                                    <option value="Bootstrapped">Bootstrapped</option>
+                                    <option value="Pre-Seed">Pre-Seed</option>
+                                    <option value="Seed">Seed Stage</option>
+                                    <option value="Series A">Series A</option>
+                                    <option value="Series B+">Series B+</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Team Details *</label>
+                                <textarea
+                                  required
+                                  rows="3"
+                                  value={fundingForm.team}
+                                  onChange={(e) => handleFundingInputChange("team", e.target.value)}
+                                  placeholder="e.g. Two co-founders. CEO has 8 years sales in fintech; CTO is former senior backend engineer at Stripe."
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm resize-none"
+                                ></textarea>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeFormTab === "core" && (
+                            <div class="space-y-4">
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Problem Statement *</label>
+                                <textarea
+                                  required
+                                  rows="3"
+                                  value={fundingForm.problem}
+                                  onChange={(e) => handleFundingInputChange("problem", e.target.value)}
+                                  placeholder="What customer pain are you solving? Be specific."
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm resize-none"
+                                ></textarea>
+                              </div>
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Solution *</label>
+                                <textarea
+                                  required
+                                  rows="3"
+                                  value={fundingForm.solution}
+                                  onChange={(e) => handleFundingInputChange("solution", e.target.value)}
+                                  placeholder="Describe your product, its features, and core value proposition."
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm resize-none"
+                                ></textarea>
+                              </div>
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Business Model *</label>
+                                <input
+                                  required
+                                  type="text"
+                                  value={fundingForm.business_model}
+                                  onChange={(e) => handleFundingInputChange("business_model", e.target.value)}
+                                  placeholder="e.g. B2B Subscription: $49/mo per user seat"
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Competitor Landscape *</label>
+                                <textarea
+                                  required
+                                  rows="2"
+                                  value={fundingForm.competitors}
+                                  onChange={(e) => handleFundingInputChange("competitors", e.target.value)}
+                                  placeholder="Who are your major competitors and what makes you unique?"
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm resize-none"
+                                ></textarea>
+                              </div>
+                            </div>
+                          )}
+
+                          {activeFormTab === "traction" && (
+                            <div class="space-y-4">
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Target Market & TAM *</label>
+                                <input
+                                  required
+                                  type="text"
+                                  value={fundingForm.target_market}
+                                  onChange={(e) => handleFundingInputChange("target_market", e.target.value)}
+                                  placeholder="e.g. Mid-market fintechs. TAM: $12B globally."
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                />
+                              </div>
+                              <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Monthly Revenue *</label>
+                                  <input
+                                    required
+                                    type="text"
+                                    value={fundingForm.monthly_revenue}
+                                    onChange={(e) => handleFundingInputChange("monthly_revenue", e.target.value)}
+                                    placeholder="e.g. $8,500 MRR"
+                                    class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <label class="block text-xs font-semibold text-gray-400 mb-1.5">Customer Count *</label>
+                                  <input
+                                    required
+                                    type="text"
+                                    value={fundingForm.customer_count}
+                                    onChange={(e) => handleFundingInputChange("customer_count", e.target.value)}
+                                    placeholder="e.g. 45 B2B clients"
+                                    class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label class="block text-xs font-semibold text-gray-400 mb-1.5">Growth Rate *</label>
+                                <input
+                                  required
+                                  type="text"
+                                  value={fundingForm.growth_rate}
+                                  onChange={(e) => handleFundingInputChange("growth_rate", e.target.value)}
+                                  placeholder="e.g. 15% month-on-month growth"
+                                  class="w-full bg-[#0B0F19] text-gray-200 px-4 py-2.5 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-sm"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Actions */}
+                          <div class="pt-4 flex justify-between items-center gap-3">
+                            {activeFormTab !== "profile" ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (activeFormTab === "core") setActiveFormTab("profile");
+                                  if (activeFormTab === "traction") setActiveFormTab("core");
+                                }}
+                                class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2.5 rounded-lg text-sm transition font-medium border border-gray-700"
+                              >
+                                Back
+                              </button>
+                            ) : <div />}
+
+                            {activeFormTab !== "traction" ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (activeFormTab === "profile") setActiveFormTab("core");
+                                  if (activeFormTab === "core") setActiveFormTab("traction");
+                                }}
+                                class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-600/10"
+                              >
+                                Next
+                              </button>
+                            ) : (
+                              <button
+                                type="submit"
+                                disabled={evaluating || !apiKeyConfigured}
+                                class={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                                  !apiKeyConfigured 
+                                    ? "bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed" 
+                                    : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-600/30"
+                                }`}
+                              >
+                                {evaluating ? (
+                                  <>
+                                    <span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                                    Analyzing Startup...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Icons.Sparkles />
+                                    Evaluate Readiness
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </form>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {/* Right Column: Dashboard Results (55% or full width on print) */}
+                {appMode && (
+                  <section class="lg:col-span-7 print:col-span-12 flex flex-col gap-6">
+                    
+                    {/* Fallback View: Initial state */}
+                    {!report && !evaluating && (
+                      <div class="glass-panel p-10 rounded-2xl border-gray-800 text-center flex flex-col items-center justify-center min-h-[450px]">
+                        <div class="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 text-indigo-400">
+                          <Icons.Sparkles />
+                        </div>
+                        <h3 class="font-display font-bold text-xl text-white">Evaluation Results Pending</h3>
+                        <p class="text-sm text-gray-400 max-w-sm mt-2 font-sans">
+                          {appMode === "idea" 
+                            ? "Enter your raw startup parameters and click Validate Idea Viability to initialize the strategy report." 
+                            : "Enter your startup traction metrics and click Evaluate Readiness. Our investor-style intelligence engine will grade your project."}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Loading State Overlay */}
+                    {evaluating && (
+                      <div class="glass-panel p-10 rounded-2xl border-indigo-500/20 text-center flex flex-col items-center justify-center min-h-[450px]">
+                        <div class="w-20 h-20 relative flex items-center justify-center mb-8">
+                          <div class="absolute inset-0 rounded-full border-4 border-indigo-500/10"></div>
+                          <div class="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                          <Icons.Sparkles />
+                        </div>
+                        <h3 class="font-display font-extrabold text-xl text-white">
+                          {appMode === "idea" ? "Viability Strategists Assembled" : "Investment Committee Convened"}
+                        </h3>
+                        <p class="text-sm text-indigo-400 font-medium mt-3 animate-pulse font-sans">
+                          {evalStepMsg}
+                        </p>
+                        <p class="text-xs text-gray-500 max-w-xs mt-6 font-sans">
+                          This Llama 3.3 70B analysis is thorough and typically takes between 10-20 seconds.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Active Report View */}
+                    {report && (
+                      <div class="space-y-6">
+                        
+                        {/* Readiness / Viability Score Card */}
+                        <div class="glass-panel p-6 rounded-2xl border-gray-800 flex flex-col md:flex-row items-center gap-6">
+                          <div class="radial-progress-ring w-36 h-36 flex-shrink-0">
+                            <svg class="w-full h-full transform -rotate-90">
+                              <circle cx="72" cy="72" r="58" class="circle-bg" />
+                              <circle 
+                                cx="72" 
+                                cy="72" 
+                                r="58" 
+                                class="circle-progress"
+                                style={{
+                                  strokeDasharray: 364,
+                                  strokeDashoffset: 364 - (364 * report.overall_score) / 100
+                                }}
+                              />
+                            </svg>
+                            <div class="absolute text-center">
+                              <span class="font-display font-black text-4xl text-white">{report.overall_score}</span>
+                              <span class="block text-[10px] text-gray-400 font-semibold tracking-wider uppercase">
+                                {appMode === "idea" ? "Viability" : "Readiness"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div class="flex-1 text-center md:text-left">
+                            <h3 class="font-display font-bold text-xl text-white">
+                              {appMode === "idea" ? "Startup Idea Viability Tier: " : "Fundraising Readiness Tier: "}
+                              <span class={`font-black ${
+                                report.overall_score >= 75 ? "text-emerald-400" : report.overall_score >= 50 ? "text-amber-400" : "text-rose-400"
+                              }`}>
+                                {appMode === "idea" 
+                                  ? (report.overall_score >= 85 ? "Extremely Strong Concept" 
+                                     : report.overall_score >= 75 ? "Highly Viable" 
+                                     : report.overall_score >= 60 ? "Moderate Viability"
+                                     : report.overall_score >= 45 ? "Pivoting Needed" 
+                                     : "Weak Concept (Rethink)")
+                                  : (report.overall_score >= 85 ? "Excellent (Series Ready)" 
+                                     : report.overall_score >= 75 ? "Highly Fundable" 
+                                     : report.overall_score >= 60 ? "Fundable with Tweaks"
+                                     : report.overall_score >= 45 ? "Early-Stage Viable" 
+                                     : "Unready (Build First)")
+                                }
+                              </span>
+                            </h3>
+                            <p class="text-xs text-gray-400 mt-2 leading-relaxed font-sans">
+                              {appMode === "idea" 
+                                ? "This viability index grades your raw startup concept against core commercial variables. A score of 75+ indicates a solid problem hook, clear TAM alignment, and manageable build friction, suggesting it is safe to proceed with validations."
+                                : "This readiness index simulates an institutional VC diligence filter. A score of 75+ represents strong alignment with seed/pre-seed criteria, meaning the company possesses valid validation and sufficient defensibility."}
+                            </p>
+                            
+                            <div class="mt-4 flex flex-wrap justify-center md:justify-start gap-3 no-print">
+                              <button 
+                                onClick={downloadMarkdown}
+                                class="bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 px-4 py-2 rounded-lg text-xs font-semibold flex items-center transition"
+                              >
+                                <Icons.Download /> Download Report
+                              </button>
+                              <button 
+                                onClick={() => window.print()}
+                                class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center transition shadow-lg shadow-indigo-600/15"
+                              >
+                                <Icons.Printer /> Print / Save PDF
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Category Breakdown Charts */}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div class="glass-panel p-5 rounded-2xl border-gray-800 flex flex-col h-[320px]">
+                            <h4 class="font-display font-bold text-sm text-gray-300 mb-2">Category Score Radar</h4>
+                            <div class="flex-1 relative">
+                              <canvas ref={chartRef}></canvas>
+                            </div>
+                          </div>
+
+                          <div class="glass-panel p-5 rounded-2xl border-gray-800 flex flex-col justify-between">
+                            <h4 class="font-display font-bold text-sm text-gray-300 mb-4">
+                              {appMode === "idea" ? "Viability Dimensions" : "Core Diligence Metrics"}
+                            </h4>
+                            <div class="space-y-3 flex-1 overflow-y-auto pr-1 font-sans">
+                              {Object.entries(getCategoryMapping()).map(([key, label]) => {
+                                const value = report.category_scores[key] || 0;
+                                return (
+                                  <div key={key}>
+                                    <div class="flex justify-between text-xs mb-1">
+                                      <span class="text-gray-400 font-medium">{label}</span>
+                                      <span class={`font-bold ${value >= 75 ? "text-emerald-400" : value >= 50 ? "text-amber-400" : "text-rose-400"}`}>{value}/100</span>
+                                    </div>
+                                    <div class="w-full bg-gray-800 rounded-full h-1.5">
+                                      <div 
+                                        class={`h-1.5 rounded-full ${value >= 75 ? "bg-emerald-400" : value >= 50 ? "bg-amber-400" : "bg-rose-500"}`} 
+                                        style={{ width: `${value}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Dashboard Tabbed Navigation */}
+                        <div class="flex border-b border-gray-800 no-print text-xs font-bold tracking-wider">
+                          {["swot", "gaps", "questions", "roadmap", "recommendations"].map((tab) => (
+                            <button
+                              key={tab}
+                              onClick={() => setActiveReportTab(tab)}
+                              class={`flex-1 pb-3 text-center border-b-2 transition ${
+                                activeReportTab === tab ? "border-indigo-500 text-indigo-400" : "border-transparent text-gray-500 hover:text-gray-300"
+                              }`}
+                            >
+                              {tab === "swot" ? "SWOT"
+                               : tab === "gaps" ? (appMode === "idea" ? "Risks" : "Gaps") 
+                               : tab === "questions" ? (appMode === "idea" ? "Testing" : "Q&A Simulator") 
+                               : tab === "roadmap" ? "Roadmap"
+                               : tab === "recommendations" ? "Advice" : tab}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* TAB A: SWOT */}
+                        {activeReportTab === "swot" && (
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="swot-strength p-5 rounded-xl">
+                              <h5 class="font-display font-extrabold text-sm text-emerald-400 mb-3 flex items-center gap-1.5">
+                                <Icons.Check /> STRENGTHS
+                              </h5>
+                              <ul class="text-xs text-gray-300 space-y-2 list-disc list-inside font-sans">
+                                {report.swot.strengths.map((s, idx) => <li key={idx}>{s}</li>)}
+                              </ul>
+                            </div>
+                            <div class="swot-weakness p-5 rounded-xl">
+                              <h5 class="font-display font-extrabold text-sm text-rose-400 mb-3 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-rose-400"></span> WEAKNESSES
+                              </h5>
+                              <ul class="text-xs text-gray-300 space-y-2 list-disc list-inside font-sans">
+                                {report.swot.weaknesses.map((w, idx) => <li key={idx}>{w}</li>)}
+                              </ul>
+                            </div>
+                            <div class="swot-opportunity p-5 rounded-xl">
+                              <h5 class="font-display font-extrabold text-sm text-blue-400 mb-3 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span> OPPORTUNITIES
+                              </h5>
+                              <ul class="text-xs text-gray-300 space-y-2 list-disc list-inside font-sans">
+                                {report.swot.opportunities.map((o, idx) => <li key={idx}>{o}</li>)}
+                              </ul>
+                            </div>
+                            <div class="swot-threat p-5 rounded-xl">
+                              <h5 class="font-display font-extrabold text-sm text-amber-500 mb-3 flex items-center gap-1.5">
+                                <Icons.Alert /> THREATS
+                              </h5>
+                              <ul class="text-xs text-gray-300 space-y-2 list-disc list-inside font-sans">
+                                {report.swot.threats.map((t, idx) => <li key={idx}>{t}</li>)}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* TAB B: GAPS & RISKS */}
+                        {activeReportTab === "gaps" && (
+                          <div class="space-y-4">
+                            {report.gaps.map((gap, idx) => (
+                              <div key={idx} class="glass-panel p-5 rounded-xl border-l-4 border-l-rose-500 flex gap-4">
+                                <div class="flex-shrink-0">
+                                  <span class={`text-[10px] uppercase font-bold px-2 py-1 rounded ${
+                                    gap.severity === "High" ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" 
+                                    : gap.severity === "Medium" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
+                                    : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                  }`}>
+                                    {gap.severity} Severity
+                                  </span>
+                                </div>
+                                <div>
+                                  <h5 class="font-display font-bold text-sm text-white">
+                                    {(gap.area || "").trim().toLowerCase().endsWith(appMode === "idea" ? "risk" : "gap")
+                                      ? gap.area
+                                      : `${gap.area} ${appMode === "idea" ? "Risk" : "Gap"}`}
+                                  </h5>
+                                  <p class="text-xs text-gray-300 mt-1.5 font-sans">
+                                    <strong class="text-rose-400">
+                                      {appMode === "idea" ? "Assumption / Risk: " : "Issue: "}
+                                    </strong> 
+                                    {gap.issue}
+                                  </p>
+                                  <p class="text-xs text-gray-300 mt-1 font-sans">
+                                    <strong class="text-emerald-400">
+                                      {appMode === "idea" ? "Testing Remedy: " : "VC Remedy: "}
+                                    </strong> 
+                                    {gap.recommendation}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* TAB C: VALIDATION QUESTIONS & INVESTOR Q&A */}
+                        {activeReportTab === "questions" && (
+                          <div class="space-y-3">
+                            {report.investor_questions.map((q, idx) => (
+                              <div key={idx} class="glass-panel rounded-xl overflow-hidden border-gray-800">
+                                <button
+                                  onClick={() => setActiveQuestion(activeQuestion === idx ? null : idx)}
+                                  class="w-full text-left p-4 flex justify-between items-center bg-gray-800/20 hover:bg-gray-800/40 transition"
+                                >
+                                  <span class="font-display font-bold text-xs text-indigo-300 font-sans">Q{idx + 1}: {q.question}</span>
+                                  <span class="text-gray-400 text-xs">{activeQuestion === idx ? "▼" : "▶"}</span>
+                                </button>
+                                {activeQuestion === idx && (
+                                  <div class="p-4 border-t border-gray-800/50 bg-[#0F172A]/40 space-y-3">
+                                    <div>
+                                      <h6 class="text-[10px] font-bold text-rose-400 uppercase tracking-wider mb-1">
+                                        {appMode === "idea" ? "Why verifying this matters" : "Underlying VC Concern"}
+                                      </h6>
+                                      <p class="text-xs text-gray-300 leading-relaxed font-sans">{q.explanation}</p>
+                                    </div>
+                                    <div>
+                                      <h6 class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">
+                                        {appMode === "idea" ? "Testing Experiment Strategy" : "Recommended Response Strategy"}
+                                      </h6>
+                                      <p class="text-xs text-gray-300 leading-relaxed font-sans">{q.key_to_answer}</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* TAB D: ROADMAP */}
+                        {activeReportTab === "roadmap" && (
+                          <div class="space-y-6 relative pl-6 border-l border-gray-800">
+                            {Object.entries(report.roadmap).map(([period, actions]) => (
+                              <div key={period} class="relative">
+                                <div class="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full bg-indigo-500 ring-4 ring-[#0B0F19]"></div>
+                                
+                                <h5 class="font-display font-extrabold text-sm text-indigo-300 uppercase tracking-wider mb-3">
+                                  {period.replace("_", " ")} Validation Plan
+                                </h5>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  {actions.map((act, idx) => (
+                                    <div key={idx} class="glass-panel p-4 rounded-xl border-gray-800 text-xs">
+                                      <span class="text-indigo-400 font-bold block mb-1">Step {idx + 1}</span>
+                                      <p class="text-gray-300 leading-relaxed font-sans">{act}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* TAB E: ADVICE (RECOMMENDATIONS) */}
+                        {activeReportTab === "recommendations" && (
+                          <div class="glass-panel p-5 rounded-2xl border-gray-800 font-sans">
+                            <h4 class="font-display font-bold text-sm text-white mb-4">
+                              {appMode === "idea" ? "Validation Blueprint" : "Tactical Funding Advice"}
+                            </h4>
+                            <ul class="space-y-4">
+                              {report.recommendations.map((rec, idx) => (
+                                <li key={idx} class="flex items-start gap-3 text-xs leading-relaxed text-gray-300">
+                                  <span class="w-5 h-5 rounded-full bg-indigo-500/10 text-indigo-400 font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    {idx + 1}
+                                  </span>
+                                  <span>{rec}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </section>
+                )}
+              </div>
+            )}
+
+            {/* TAB VIEW: ASSESSMENT HISTORY (Data log & analytics screen) */}
+            {activeTab === "history" && (
+              <div class="space-y-8 no-print">
+                <div class="glass-panel p-6 rounded-2xl border-gray-800">
+                  <h2 class="font-display font-extrabold text-2xl text-white mb-2">Assessment Log & Trends</h2>
+                  <p class="text-xs text-gray-400 font-sans">Track your progress and run side-by-side comparisons of startup evaluations.</p>
+                </div>
+
+                {/* Score Trend Analytics and Comparison Panel wrapper */}
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Left block: Trend Chart (8 cols if comparing, otherwise 12) */}
+                  <div class={`${comparisonData ? "lg:col-span-7" : "col-span-12"} glass-panel p-5 rounded-2xl border-gray-800 h-[350px] flex flex-col`}>
+                    <h3 class="font-display font-bold text-sm text-gray-300 mb-3">Score Analytics Timeline</h3>
+                    <div class="flex-1 relative">
+                      {historyList.length > 0 ? (
+                        <canvas ref={trendChartRef}></canvas>
+                      ) : (
+                        <div class="absolute inset-0 flex items-center justify-center text-xs text-gray-500 font-sans">
+                          No assessment history recorded yet. Complete an evaluation to populate charts.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right block: Comparison view (only shown if 2 selected) */}
+                  {comparisonData && (
+                    <div class="lg:col-span-5 glass-panel p-5 rounded-2xl border-indigo-500/30 flex flex-col justify-between max-h-[350px] overflow-y-auto">
+                      <div>
+                        <div class="flex justify-between items-center border-b border-gray-800 pb-2.5 mb-3">
+                          <h3 class="font-display font-extrabold text-sm text-white flex items-center gap-1.5">
+                            <Icons.Sparkles /> Audited Diffs
+                          </h3>
+                          <button 
+                            onClick={() => {
+                              setComparisonSelection([]);
+                              setComparisonData(null);
+                            }}
+                            class="text-gray-400 hover:text-gray-200 text-xs"
+                          >
+                            Clear
+                          </button>
+                        </div>
+
+                        <div class="text-xs space-y-2 mb-4 font-sans">
+                          <p class="text-gray-400">
+                            Comparing: <strong class="text-white">{comparisonData.record1.name}</strong> 
+                            ({new Date(comparisonData.record1.date).toLocaleDateString()}) vs{" "}
+                            <strong class="text-white">{comparisonData.record2.name}</strong> 
+                            ({new Date(comparisonData.record2.date).toLocaleDateString()})
+                          </p>
+
+                          {/* Diffs computation */}
+                          {(() => {
+                            const insights = generateComparisonInsights();
+                            if (!insights) return null;
+                            return (
+                              <div class="space-y-2.5">
+                                <div class="flex items-center gap-2 mt-2">
+                                  <span class="text-gray-300">Overall Variance:</span>
+                                  <span class={`diff-pill ${
+                                    insights.diffOverall > 0 ? "diff-positive" 
+                                    : insights.diffOverall < 0 ? "diff-negative" 
+                                    : "diff-neutral"
+                                  }`}>
+                                    {insights.diffOverall > 0 ? `+${insights.diffOverall}` : insights.diffOverall} pts
+                                  </span>
+                                </div>
+
+                                {insights.improvements.length > 0 && (
+                                  <div>
+                                    <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">🟢 Key Improvements</span>
+                                    <ul class="list-disc list-inside space-y-0.5 text-gray-300 text-[11px]">
+                                      {insights.improvements.map((imp, i) => <li key={i}>{imp}</li>)}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {insights.declines.length > 0 && (
+                                  <div>
+                                    <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">🔴 Key Declines</span>
+                                    <ul class="list-disc list-inside space-y-0.5 text-gray-300 text-[11px]">
+                                      {insights.declines.map((dec, i) => <li key={i}>{dec}</li>)}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Search / Filter bar */}
+                <div class="glass-panel p-4 rounded-xl border-gray-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+                  <div class="flex flex-1 gap-3 w-full">
+                    <input
+                      type="text"
+                      placeholder="Search assessments by startup name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      class="bg-[#0B0F19] text-gray-200 px-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-xs w-full max-w-md"
+                    />
+                    <select
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
+                      class="bg-[#0B0F19] text-gray-200 px-3 py-2 rounded-lg border border-gray-700 focus:outline-none focus:border-indigo-500 text-xs"
+                    >
+                      <option value="all">All Stages</option>
+                      <option value="idea">Idea Validation</option>
+                      <option value="funding">Funding Readiness</option>
+                    </select>
+                  </div>
+                  
+                  {comparisonSelection.length > 0 && (
+                    <div class="text-xs text-gray-400 font-sans">
+                      Selected: <strong>{comparisonSelection.length}/2</strong> for comparison
+                    </div>
+                  )}
+                </div>
+
+                {/* History Data Table */}
+                <div class="glass-panel rounded-2xl border-gray-800 overflow-hidden">
+                  <table class="w-full border-collapse history-table text-xs">
+                    <thead>
+                      <tr class="bg-gray-800/20 text-gray-400">
+                        <th class="w-10">Compare</th>
+                        <th>Startup / Project Name</th>
+                        <th>Assessment Type</th>
+                        <th>Date Conducted</th>
+                        <th>Overall Score</th>
+                        <th class="text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody class="font-sans">
+                      {historyList.filter(item => {
+                        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+                        const matchesType = filterType === "all" || 
+                                            (filterType === "idea" && item.type === "Idea Validation") || 
+                                            (filterType === "funding" && item.type === "Funding Readiness");
+                        return matchesSearch && matchesType;
+                      }).map((item) => (
+                        <tr key={item.id} class="border-b border-gray-800/40">
+                          <td class="text-center">
+                            <input
+                              type="checkbox"
+                              checked={comparisonSelection.includes(item.id)}
+                              onChange={() => toggleComparisonSelection(item.id)}
+                              disabled={!comparisonSelection.includes(item.id) && comparisonSelection.length >= 2}
+                              class="rounded border-gray-700 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                            />
+                          </td>
+                          <td class="font-bold text-white">{item.name}</td>
+                          <td>
+                            <span class={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${
+                              item.type === "Idea Validation" 
+                                ? "bg-amber-500/10 text-amber-400 border-amber-500/20" 
+                                : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                            }`}>
+                              {item.type}
+                            </span>
+                          </td>
+                          <td class="text-gray-400">{new Date(item.date).toLocaleString()}</td>
+                          <td>
+                            <span class={`font-extrabold ${
+                              item.overall_score >= 75 ? "text-emerald-400" : item.overall_score >= 50 ? "text-amber-400" : "text-rose-500"
+                            }`}>
+                              {item.overall_score}/100
+                            </span>
+                          </td>
+                          <td class="text-right space-x-2">
+                            <button
+                              onClick={() => viewPastAssessment(item.id)}
+                              class="bg-indigo-600/15 hover:bg-indigo-600/35 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded transition text-[11px] font-semibold"
+                            >
+                              Load
+                            </button>
+                            <button
+                              onClick={(e) => deletePastAssessment(item.id, e)}
+                              class="bg-rose-500/15 hover:bg-rose-500/35 text-rose-400 border border-rose-500/20 p-1.5 rounded transition inline-flex items-center justify-center"
+                              title="Delete Record"
+                            >
+                              <Icons.Trash />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {historyList.length === 0 && (
+                        <tr>
+                          <td colSpan="6" class="text-center py-8 text-gray-500">
+                            No evaluations found. Build an assessment to populate the history table.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            )}
+
+          </main>
+        </div>
+      );
+    }
+
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>
